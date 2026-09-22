@@ -1,0 +1,69 @@
+# 파일 목적: 모든 환경에 공통인 서버 설정. 환경별 차이(DB 주소·비밀번호)는 환경 변수로 주입한다.
+#
+# 원칙:
+#  - 비밀값(비밀번호·키)은 절대 이 파일에 쓰지 않는다. ${ENV_VAR:기본값} 형태로 읽는다.
+#  - 로컬 개발 기본값은 docker-compose.yml의 PostgreSQL과 맞춰 두어, 환경 변수 없이도
+#    `./gradlew bootRun`이 바로 뜨게 한다.
+#  - 운영 값은 Sprint 6에서 application-prod.yml + VM의 .env 파일로 분리한다.
+
+spring:
+  application:
+    name: praylist-server
+
+  datasource:
+    # docker-compose.yml의 postgres 서비스와 동일한 값. 운영에서는 세 변수를 모두 덮어쓴다.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/praylist}
+    username: ${DB_USER:praylist}
+    password: ${DB_PASSWORD:praylist-local}
+
+  jpa:
+    hibernate:
+      # 스키마는 Flyway가 관리한다. Hibernate가 임의로 테이블을 만들거나 바꾸면
+      # 마이그레이션 이력과 어긋나므로 'validate'로 두어 불일치 시 기동을 실패시킨다.
+      ddl-auto: validate
+    open-in-view: false # 컨트롤러까지 세션을 열어 두는 안티패턴 방지. 지연 로딩은 서비스 계층에서 끝낸다.
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100 # N+1 완화. 컬렉션 지연 로딩을 100건 단위 IN 쿼리로 묶는다.
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # 운영 DB에 이력 테이블이 없을 때(첫 배포) 기준선을 자동 생성하지 않는다.
+    # 첫 배포는 빈 DB에 V1부터 적용되는 것이 정상이며, 실수로 기존 DB에 붙는 사고를 막는다.
+    baseline-on-migrate: false
+
+  jackson:
+    # 날짜(Instant 등)는 Jackson 3(Boot 4) 기본값이 이미 ISO-8601 문자열("2026-09-22T13:00:00Z")이다.
+    # Boot 3 시절의 spring.jackson.serialization.write-dates-as-timestamps 는 Jackson 3에서
+    # DateTimeFeature로 옮겨져 그 키를 쓰면 기동이 실패하므로 적지 않는다.
+    default-property-inclusion: non_null # null 필드는 JSON에서 생략해 페이로드를 줄인다.
+
+server:
+  port: ${SERVER_PORT:8080}
+  # 에러 응답에 스택 트레이스·메시지를 노출하지 않는다. 내부 구조가 새는 것을 막는다.
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # 운영 모니터링에 필요한 최소만 연다. 나머지 actuator 엔드포인트는 외부 노출 금지.
+        include: health,info
+  endpoint:
+    health:
+      show-details: never # DB 연결 상태 등 상세는 인증 없이 보이지 않게
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method # GET → POST 순으로 정렬해 읽기 쉽게
+
+logging:
+  level:
+    root: INFO
+    com.praylist: DEBUG # 우리 코드만 DEBUG. 프레임워크 로그까지 켜면 노이즈가 심하다.

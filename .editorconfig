@@ -1,0 +1,25 @@
+# 편집기 공통 서식. ktlint도 이 파일을 읽는다.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+max_line_length = 140
+ktlint_code_style = ktlint_official
+# 함수 시그니처가 길 때 매개변수를 한 줄에 하나씩 강제하는 규칙은 끈다(주석 달린 DTO에서 과하게 길어짐).
+ktlint_function_signature_rule_force_multiline_when_parameter_count_greater_or_equal_than = unset
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.sql]
+indent_size = 4

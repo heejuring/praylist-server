@@ -1,0 +1,93 @@
+# 파일 목적: detekt 정적 분석 규칙 중 프로젝트가 기본값과 다르게 쓰는 것만 적는다.
+# (buildUponDefaultConfig = true 이므로 여기 없는 규칙은 detekt 기본값을 따른다)
+#
+# 핵심: 기획서 08 "코드 규칙"의 "모든 public 심볼에 KDoc 필수"를 기계적으로 강제한다.
+# 이 규칙에 걸리면 `./gradlew check`가 실패하고 PR을 머지할 수 없다.
+
+comments:
+  active: true
+  # --- 주석 필수 규칙 (프로젝트의 핵심 규칙) ---
+  UndocumentedPublicClass:
+    active: true
+    searchInNestedClass: true
+    searchInInnerClass: true
+    searchInInnerObject: true
+    searchInInnerInterface: true
+    searchInProtectedClass: true
+  UndocumentedPublicFunction:
+    active: true
+    searchProtectedFunction: true
+  UndocumentedPublicProperty:
+    active: true
+    searchProtectedProperty: true
+  # --- 주석 품질 규칙 ---
+  # "@return" 같은 태그가 실제 시그니처와 어긋나면 잡아낸다.
+  OutdatedDocumentation:
+    active: true
+    matchTypeParameters: true
+    matchDeclarationsOrder: true
+    allowParamOnConstructorProperties: true
+  # KDoc 대신 "//" 주석으로 public 선언을 설명하는 것을 막는다(도구가 인식 못 함).
+  EndOfSentenceFormat:
+    active: false # 한국어 문장 끝 규칙과 맞지 않아 끈다.
+  # 주석 처리된 코드 덩어리는 삭제하고 git 이력으로 남긴다.
+  CommentOverPrivateFunction:
+    active: false # private 함수에도 "왜" 주석을 권장하므로 금지하지 않는다.
+  CommentOverPrivateProperty:
+    active: false
+
+style:
+  active: true
+  # 매직 넘버는 이름 붙은 상수로. 단, 0·1·-1과 테스트는 예외.
+  MagicNumber:
+    active: true
+    ignoreNumbers: ['-1', '0', '1', '2']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotation: true
+  # TODO는 이슈 번호와 함께: // TODO(#42): ...  (기획서 08)
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: 'TODO/FIXME에는 이슈 번호를 붙이세요. 예: // TODO(#12): 설명'
+        value: 'TODO:'
+      - reason: 'TODO/FIXME에는 이슈 번호를 붙이세요. 예: // FIXME(#12): 설명'
+        value: 'FIXME:'
+  MaxLineLength:
+    active: true
+    maxLineLength: 140 # 한국어 주석이 길어지는 것을 감안해 기본(120)보다 조금 넉넉히
+    excludeCommentStatements: true
+  ReturnCount:
+    active: true
+    max: 3
+  UnusedPrivateMember:
+    active: true
+  WildcardImport:
+    active: true
+
+complexity:
+  active: true
+  LongParameterList:
+    active: true
+    functionThreshold: 7
+    constructorThreshold: 8 # data class(DTO·엔티티)는 필드가 많을 수 있어 조금 넉넉히
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Entity', 'Embeddable']
+  TooManyFunctions:
+    active: true
+    thresholdInClasses: 15
+    ignoreAnnotatedFunctions: ['Test']
+
+naming:
+  active: true
+  FunctionNaming:
+    active: true
+    # 테스트 함수명은 한국어 백틱 문장을 허용한다: fun `헬스체크는 200을 준다`()
+    ignoreAnnotated: ['Test', 'ParameterizedTest']
+
+performance:
+  active: true
+  # `runApplication<App>(*args)`, `requestMatchers(*PUBLIC_PATHS)` 같은 Spring 관용구가 걸린다.
+  # 기동 시 한 번 실행되는 코드의 배열 복사는 성능에 의미가 없으므로 이 규칙은 끈다.
+  SpreadOperator:
+    active: false

@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경 변수 · 비밀값 (절대 커밋 금지)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+firebase-service-account*.json
+
+# 로그
+*.log
+logs/
